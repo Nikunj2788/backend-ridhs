@@ -2,17 +2,17 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
-const morgan = require('morgan'); // For logging
+const morgan = require('morgan');
 
 const app = express();
 
-// Enhanced CORS configuration
+// CORS Configuration
 const allowedOrigins = [
   'http://localhost:8086',
   'https://www.ridhsdesign.com',
   'https://ridhsdesign.com',
   'https://backend.ridhsdesign.com',
-  'http://localhost:3000',
+  'http://localhost:3000'
 ];
 
 app.use(cors({
@@ -28,35 +28,34 @@ app.use(cors({
   credentials: true
 }));
 
-app.use(morgan('combined')); // HTTP request logging
+app.use(morgan('combined'));
 app.use(express.json());
 
-// Serve static files
+// Serve static files (Note: serverless has limitations here)
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // API routes
-app.use('/api/ping-db', require('./api/ping-db'));
-app.use('/api/contact', require('./api/contact'));
-app.use('/api/products', require('./api/products'));
+app.use('/api/ping-db', require('./ping-db'));
+app.use('/api/contact', require('./contact'));
+app.use('/api/products', require('./products'));
 
-// Health check endpoint
+// Health check
 app.get('/health', (req, res) => {
   res.status(200).json({ status: 'healthy' });
 });
 
-// Catch 404 and forward to error handler
+// 404 Handler
 app.use((req, res, next) => {
   res.status(404).json({ error: 'Not Found' });
 });
 
-// Error handler
+// Error Handler
 app.use((err, req, res, next) => {
   console.error(err.stack);
   res.status(500).json({ error: 'Internal Server Error' });
 });
 
-const PORT = process.env.PORT || 3001;
-app.listen(PORT, () => {
-  console.log(`🚀 Server running on port ${PORT}`);
-  console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
-});
+//Important: Export handler function for Vercel
+module.exports = (req, res) => {
+  app(req, res);
+};
