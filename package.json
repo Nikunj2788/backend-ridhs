@@ -1,0 +1,16 @@
+{
+  "name": "backend-ridhs",
+  "version": "1.0.0",
+  "main": "api/index.js",
+  "scripts": {
+    "dev": "vercel dev",
+    "start": "vercel dev"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^16.5.0",
+    "express": "^5.1.0",
+    "pg": "^8.16.0",
+    "serverless-http": "^3.2.0"
+  }
+}
