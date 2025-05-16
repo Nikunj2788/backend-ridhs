@@ -1,70 +1,104 @@
-// api/ping-db.js
-const express = require('express');
-const router = express.Router();
+// // Local Express version of ping-db.js
+// const express = require('express');
+// const router = express.Router();
+// let pool;
 
-// Import pool with error handling
+// try {
+//   pool = require('../db/db');
+//   console.log('Pool successfully imported:', !!pool);
+// } catch (error) {
+//   console.error('❌ Failed to import db module:', error);
+// }
+
+// router.get('/', async (req, res) => {
+//   if (!pool) {
+//     return res.status(500).json({
+//       error: 'Database pool not initialized',
+//       message: 'Server configuration error',
+//     });
+//   }
+
+//   let client;
+
+//   try {
+//     client = await pool.connect();
+//     const result = await client.query('SELECT NOW() AS now');
+//     res.status(200).json({
+//       message: 'DB connected!',
+//       serverTime: result.rows[0].now,
+//       environment: process.env.NODE_ENV || 'development',
+//     });
+//   } catch (err) {
+//     res.status(500).json({
+//       error: 'Database connection failed',
+//       details: err.message,
+//     });
+//   } finally {
+//     if (client) {
+//       try {
+//         client.release();
+//       } catch (releaseErr) {
+//         console.error('Error releasing client:', releaseErr);
+//       }
+//     }
+//   }
+// });
+
+// module.exports = router;
+
+
+// Vercel Serverless Function version of ping-db.js
+const { Pool } = require('pg');
+
 let pool;
-try {
-  pool = require('../db/db');
-  console.log('Pool successfully imported:', !!pool);
-} catch (error) {
-  console.error('❌ Failed to import db module:', error);
+
+if (!pool) {
+  try {
+    pool = new Pool({
+      connectionString: process.env.DATABASE_URL,
+      ssl: {
+        rejectUnauthorized: false,
+      },
+    });
+  } catch (err) {
+    console.error('Failed to create PostgreSQL pool:', err);
+  }
 }
 
-router.get('/', async (req, res) => {
-  // If pool wasn't imported correctly, return error immediately
+module.exports = async function (req, res) {
+  if (req.method !== 'GET') {
+    return res.status(405).json({ error: 'Method Not Allowed' });
+  }
+
   if (!pool) {
-    console.error('❌ DB pool is not available');
-    return res.status(500).json({ 
+    return res.status(500).json({
       error: 'Database pool not initialized',
-      message: 'Server configuration error' 
+      message: 'Server configuration error',
     });
   }
 
-  // Attempt connection
   let client;
+
   try {
-    // Log connection attempt
-    console.log('Attempting to connect to database...');
-    
-    // Debug info
-    console.log('Pool type:', typeof pool);
-    console.log('Pool methods:', Object.keys(pool));
-    
-    // Get client from pool
     client = await pool.connect();
-    console.log('✅ Client connected from pool');
-    
-    // Run simple query
     const result = await client.query('SELECT NOW() AS now');
-    console.log('✅ Query executed successfully');
-    
-    // Return success
-    res.status(200).json({ 
-      message: 'DB connected!', 
+    res.status(200).json({
+      message: 'DB connected!',
       serverTime: result.rows[0].now,
-      environment: process.env.NODE_ENV || 'development'
+      environment: process.env.NODE_ENV || 'production',
     });
   } catch (err) {
-    console.error('❌ DB connection failed:', err);
-    
-    // Detailed error response
-    res.status(500).json({ 
-      error: 'Database connection failed', 
+    res.status(500).json({
+      error: 'Database connection failed',
       details: err.message,
-      stack: process.env.NODE_ENV === 'production' ? null : err.stack
     });
   } finally {
-    // Release client back to pool if it was obtained
     if (client) {
       try {
         client.release();
-        console.log('✅ Client released back to pool');
       } catch (releaseErr) {
-        console.error('❌ Error releasing client:', releaseErr);
+        console.error('Error releasing client:', releaseErr);
       }
     }
   }
-});
-
-module.exports = router;
+};
