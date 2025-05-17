@@ -8,7 +8,7 @@ const app = express();
 
 // CORS Configuration
 const allowedOrigins = [
-  'http://localhost:8086',
+  'http://localhost:8085',
   'https://www.ridhsdesign.com',
   'https://ridhsdesign.com',
   'https://backend.ridhsdesign.com',

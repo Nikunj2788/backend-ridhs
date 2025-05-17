@@ -118,4 +118,35 @@ async function saveProduct(productData) {
     }
 }
 
-module.exports = { saveProduct };
+// Get all products with optional category filter
+async function getProducts(category) {
+    try {
+        const query = category
+            ? 'SELECT * FROM products WHERE category = $1'
+            : 'SELECT * FROM products';
+        const values = category ? [category] : [];
+        const result = await db.query(query, values);
+        return result.rows;
+    } catch (error) {
+        console.error('Error fetching products:', error);
+        throw error;
+    }
+}
+
+// Get a single product by ID
+async function getProductById(id) {
+    try {
+        const query = 'SELECT * FROM products WHERE id = $1';
+        const result = await db.query(query, [id]);
+        return result.rows[0];
+    } catch (error) {
+        console.error('Error fetching product:', error);
+        throw error;
+    }
+}
+
+module.exports = {
+    saveProduct,
+    getProducts,
+    getProductById
+};
