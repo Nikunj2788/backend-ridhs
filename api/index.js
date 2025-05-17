@@ -35,9 +35,11 @@ app.use(express.json());
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // API routes
+
 app.use('/api/ping-db', require('./ping-db'));
 app.use('/api/contact', require('./contact'));
 app.use('/api/products', require('./products'));
+console.log('✅ Register route mounted'); // 👈 Just before mounting
 app.use('/api/register', require('./register'));
 
 
