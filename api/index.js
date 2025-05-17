@@ -12,7 +12,7 @@ const allowedOrigins = [
   'https://www.ridhsdesign.com',
   'https://ridhsdesign.com',
   'https://backend.ridhsdesign.com',
-  'http://localhost:3000'
+  'http://localhost:3001'
 ];
 
 app.use(cors({
@@ -39,11 +39,9 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 app.use('/api/ping-db', require('./ping-db'));
 app.use('/api/contact', require('./contact'));
 app.use('/api/products', require('./products'));
-console.log('✅ Register route mounted'); // 👈 Just before mounting
 app.use('/api/register', require('./register'));
-app.use((req, res) => {
-  res.status(404).json({ error: 'Not Found' });
-});
+app.use('/api/login', require('./login'));
+
 
 // Health check
 app.get('/health', (req, res) => {
