@@ -1,6 +1,6 @@
 const registerService = require('../service/registerService');
 
-async function handleRegister(req, res) {
+async function handleRegisterForm(req, res) {
     if (req.method !== 'POST') {
         return res.status(405).json({ message: 'Method Not Allowed' });
     }
@@ -22,5 +22,5 @@ async function handleRegister(req, res) {
 }
 
 module.exports = {
-    handleRegister,
+    handleRegisterForm,
 };

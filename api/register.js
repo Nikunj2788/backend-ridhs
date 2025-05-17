@@ -1,8 +1,8 @@
 const express = require('express');
 const router = express.Router();
-const { handleRegister } = require('../controller/registerController');
+const { handleRegisterForm } = require('../controller/registerController');
 
-// POST /api/register
-router.post('/', handleRegister);
+// Define POST route for contact form submission
+router.post('/', handleRegisterForm);
 
 module.exports = router;
