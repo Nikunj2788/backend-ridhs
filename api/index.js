@@ -38,6 +38,8 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 app.use('/api/ping-db', require('./ping-db'));
 app.use('/api/contact', require('./contact'));
 app.use('/api/products', require('./products'));
+app.use('/api/register', require('./register'));
+
 
 // Health check
 app.get('/health', (req, res) => {
@@ -55,7 +57,15 @@ app.use((err, req, res, next) => {
   res.status(500).json({ error: 'Internal Server Error' });
 });
 
-//Important: Export handler function for Vercel
-module.exports = (req, res) => {
-  app(req, res);
-};
+// ✅ Local dev support
+if (require.main === module) {
+  const PORT = process.env.PORT || 3001;
+  app.listen(PORT, () => {
+    console.log(`🚀 Server running locally on http://localhost:${PORT}`);
+  });
+} else {
+  // ✅ Vercel support
+  module.exports = (req, res) => {
+    app(req, res);
+  };
+}
