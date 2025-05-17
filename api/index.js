@@ -41,7 +41,9 @@ app.use('/api/contact', require('./contact'));
 app.use('/api/products', require('./products'));
 console.log('✅ Register route mounted'); // 👈 Just before mounting
 app.use('/api/register', require('./register'));
-
+app.use((req, res) => {
+  res.status(404).json({ error: 'Not Found' });
+});
 
 // Health check
 app.get('/health', (req, res) => {
