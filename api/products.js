@@ -1,23 +1,28 @@
-// const express = require('express');
-// const router = express.Router();
-// const { handleAddProduct, upload } = require('../controller/productController');
-
-// router.post('/add', upload.array('images'), handleAddProduct);
-
-// module.exports = router;
-
-
 const express = require('express');
 const router = express.Router();
-const { handleAddProduct, getAllProducts, getProductById, upload } = require('../controller/productController');
+const {
+    handleAddProduct,
+    getAllProducts,
+    getProductById,
+    getFeaturedProducts,
+    getTrendingProducts,
+    upload
+} = require('../controller/productController');
 
 // Add a new product
 router.post('/add', upload.array('images'), handleAddProduct);
 
-// Get all products with optional category filter
+// Get all products or filtered by category
 router.get('/', getAllProducts);
 
-// Get a single product by ID
+// Get featured products
+router.get('/featured', getFeaturedProducts);
+
+// Optional: Get trending products
+router.get('/trending', getTrendingProducts);
+
+// Get product by ID
 router.get('/:id', getProductById);
 
 module.exports = router;
+

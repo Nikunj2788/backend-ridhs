@@ -1,7 +1,7 @@
-// Correct the query to use pool.query() for PostgreSQL
 const { Pool } = require('pg');
 const db = require('../db/db');
 
+// Save product data into the database
 async function saveProduct(productData) {
     const {
         name,
@@ -36,7 +36,7 @@ async function saveProduct(productData) {
     } = productData;
 
     try {
-        // Save product data into the "products" table
+        // Insert product data into the "products" table
         const query = `
             INSERT INTO products (
                 name, description, category, subcategory, price, discount_price,
@@ -48,7 +48,6 @@ async function saveProduct(productData) {
             RETURNING id
         `;
 
-        // Convert empty strings to null for numeric fields
         const values = [
             name,
             description,
@@ -77,11 +76,10 @@ async function saveProduct(productData) {
             zariType || null
         ];
 
-        // Perform the query using pool.query() for PostgreSQL
-        const result = await db.query(query, values); // ✅ Correct for PostgreSQL
-        const productId = result.rows[0].id; // Get the inserted product id
+        const result = await db.query(query, values);
+        const productId = result.rows[0].id;  // Get the inserted product id
 
-        // Process the associated images, colors, sizes, and fabrics as you did before
+        // Process colors, sizes, fabrics, and images
         if (colors && colors.length > 0) {
             const colorQuery = `INSERT INTO product_colors (product_id, color) VALUES ($1, $2)`;
             for (let color of colors) {
@@ -103,12 +101,11 @@ async function saveProduct(productData) {
             }
         }
 
-        // Handle images, assuming images are already saved to disk and you store the URLs in the database
+        // Handle images
         if (images && images.length > 0) {
             const imageQuery = `INSERT INTO product_images (product_id, image_url) VALUES ($1, $2)`;
             for (let image of images) {
-                const imageUrl = image;  // Assuming `image` is a URL or file path
-                await db.query(imageQuery, [productId, imageUrl]);
+                await db.query(imageQuery, [productId, image]);
             }
         }
 
@@ -118,12 +115,21 @@ async function saveProduct(productData) {
     }
 }
 
-// Get all products with optional category filter
 async function getProducts(category) {
     try {
         const query = category
-            ? 'SELECT * FROM products WHERE category = $1'
-            : 'SELECT * FROM products';
+            ? `
+                SELECT p.*, pi.image_url
+                FROM products p
+                LEFT JOIN product_images pi ON pi.product_id = p.id
+                WHERE p.category = $1
+              `
+            : `
+                SELECT p.*, pi.image_url
+                FROM products p
+                LEFT JOIN product_images pi ON pi.product_id = p.id
+              `;
+
         const values = category ? [category] : [];
         const result = await db.query(query, values);
         return result.rows;
@@ -133,14 +139,61 @@ async function getProducts(category) {
     }
 }
 
-// Get a single product by ID
+
 async function getProductById(id) {
+    console.log(`Inside productService - ID: ${id}`); // Debugging line
+
+    const query = `
+    SELECT 
+      p.*, 
+      pi.image_url
+    FROM 
+      products p
+    LEFT JOIN 
+      product_images pi ON pi.product_id = p.id
+    WHERE 
+      p.id = $1
+  `;
+
+    const result = await db.query(query, [id]);  // Ensure db.query uses id properly
+
+    if (result.rows.length === 0) {
+        return null;  // No product found
+    }
+
+    const product = result.rows[0];
+
+    return product;
+}
+
+
+
+// Get all featured products
+async function getFeaturedProducts() {
     try {
-        const query = 'SELECT * FROM products WHERE id = $1';
-        const result = await db.query(query, [id]);
-        return result.rows[0];
+        const query = `
+            SELECT p.*, pi.image_url
+            FROM products p
+            LEFT JOIN product_images pi ON pi.product_id = p.id
+            WHERE p.is_featured = true
+        `;
+
+        const result = await db.query(query);
+        return result.rows;
     } catch (error) {
-        console.error('Error fetching product:', error);
+        console.error('Error fetching featured products:', error);
+        throw error;
+    }
+}
+
+// Get all trending products
+async function getTrendingProducts() {
+    try {
+        const query = 'SELECT * FROM products WHERE is_trending = true';
+        const result = await db.query(query);
+        return result.rows;
+    } catch (error) {
+        console.error('Error fetching trending products:', error);
         throw error;
     }
 }
@@ -148,5 +201,7 @@ async function getProductById(id) {
 module.exports = {
     saveProduct,
     getProducts,
-    getProductById
+    getProductById,
+    getFeaturedProducts,
+    getTrendingProducts,
 };

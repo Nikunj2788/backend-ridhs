@@ -1,0 +1,42 @@
+const Razorpay = require('razorpay');
+const crypto = require('crypto');
+const db = require('../db/db');
+
+const razorpay = new Razorpay({
+  key_id: process.env.RAZORPAY_KEY,
+  key_secret: process.env.RAZORPAY_SECRET
+});
+
+async function createOrder(orderData) {
+  const { items, shippingDetails, total, subtotal, shipping } = orderData;
+
+  // Save order to database
+  const query = `
+    INSERT INTO orders (items, shipping_details, total, subtotal, shipping)
+    VALUES ($1, $2, $3, $4, $5)
+    RETURNING id
+  `;
+  const values = [JSON.stringify(items), JSON.stringify(shippingDetails), total, subtotal, shipping];
+  const result = await db.query(query, values);
+  const orderId = result.rows[0].id;
+
+  // Create Razorpay order
+  const options = {
+    amount: total * 100,
+    currency: 'INR',
+    receipt: `order_${orderId}`,
+    payment_capture: 1
+  };
+  const order = await razorpay.orders.create(options);
+
+  return { id: order.id };
+}
+
+async function verifyPayment(orderCreationId, razorpayPaymentId, razorpaySignature) {
+  const shasum = crypto.createHmac('sha256', process.env.RAZORPAY_SECRET);
+  shasum.update(`${orderCreationId}|${razorpayPaymentId}`);
+  const digest = shasum.digest('hex');
+  return digest === razorpaySignature;
+}
+
+module.exports = { createOrder, verifyPayment };

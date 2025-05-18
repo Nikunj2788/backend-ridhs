@@ -31,9 +31,6 @@ app.use(cors({
 app.use(morgan('combined'));
 app.use(express.json());
 
-// Serve static files (Note: serverless has limitations here)
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
-
 // API routes
 
 app.use('/api/ping-db', require('./ping-db'));
@@ -41,6 +38,9 @@ app.use('/api/contact', require('./contact'));
 app.use('/api/products', require('./products'));
 app.use('/api/register', require('./register'));
 app.use('/api/login', require('./login'));
+app.use('/api/order', require('./order'));
+const uploadsPath = path.join(__dirname, '..', 'uploads');
+app.use('/uploads', express.static(uploadsPath));
 
 
 // Health check
