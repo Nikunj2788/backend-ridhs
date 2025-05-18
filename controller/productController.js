@@ -5,7 +5,9 @@ const upload = require('../config/multer'); // Use the multer config
 const generateImageUrl = (imageFilename) => {
     if (imageFilename) {
         // Assuming images are served from 'https://your-domain.com/uploads/'
-        return `http://localhost:3001/uploads/${imageFilename}`;
+        // return `http://localhost:3001/uploads/${imageFilename}`;
+        return `https://backend.ridhsdesign.com/uploads/${imageFilename}`;
+
     }
     return null;  // Fallback if there's no image
 };
@@ -121,10 +123,10 @@ async function getAllProducts(req, res) {
 async function getProductById(req, res) {
     console.log('Request params:', req.params); // Check what is inside req.params
     const { id } = req.params;  // Should retrieve id from params
-    
+
     // Add extra logging to verify
     console.log(`Product ID: ${id}`);
-    
+
     try {
         // Make sure id is available
         if (!id) {
@@ -133,11 +135,11 @@ async function getProductById(req, res) {
 
         // Fetch product from the service
         const product = await productService.getProductById(id);
-        
+
         if (product) {
             // Generate the full image URL
             product.image_url = generateImageUrl(product.image_url);  // Update the image URL with the full path
-            
+
             res.status(200).json(product);  // Send product with full image URL
         } else {
             res.status(404).json({ message: 'Product not found' });

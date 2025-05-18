@@ -41,6 +41,8 @@ app.use('/api/login', require('./login'));
 app.use('/api/order', require('./order'));
 const uploadsPath = path.join(__dirname, '..', 'uploads');
 app.use('/uploads', express.static(uploadsPath));
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
 
 // Health check
