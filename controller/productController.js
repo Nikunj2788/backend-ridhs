@@ -2,19 +2,6 @@ const productService = require('../service/productService');
 const upload = require('../config/multer');
 const { uploadToDrive } = require('../config/googleDrive'); // ✅ adjust path if needed
 
-// Helper function to generate the image URL (adjust base URL as needed)
-// const generateImageUrl = (imageUrl) => {
-//     if (!imageUrl) return null;
-
-//     // If the URL is already a Drive shareable link, return it directly
-//     if (imageUrl.startsWith('https://drive.google.com/uc?id=')) {
-//         return imageUrl;
-//     }
-
-//     // Else, treat it as a local file reference (useful for older images)
-//     return `https://backend.ridhsdesign.com/uploads/${imageUrl}`;
-// };
-
 
 async function handleAddProduct(req, res) {
     if (req.method !== 'POST') {
