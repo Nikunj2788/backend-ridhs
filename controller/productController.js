@@ -1,59 +1,42 @@
 const productService = require('../service/productService');
-const upload = require('../config/multer'); // Use the multer config
+const upload = require('../config/multer');
+const { uploadToDrive } = require('../config/googleDrive'); // ✅ adjust path if needed
 
 // Helper function to generate the image URL (adjust base URL as needed)
-const generateImageUrl = (imageFilename) => {
-    if (imageFilename) {
-        // Assuming images are served from 'https://your-domain.com/uploads/'
-        // return `http://localhost:3001/uploads/${imageFilename}`;
-        return `https://backend.ridhsdesign.com/uploads/${imageFilename}`;
+// const generateImageUrl = (imageUrl) => {
+//     if (!imageUrl) return null;
 
-    }
-    return null;  // Fallback if there's no image
-};
+//     // If the URL is already a Drive shareable link, return it directly
+//     if (imageUrl.startsWith('https://drive.google.com/uc?id=')) {
+//         return imageUrl;
+//     }
+
+//     // Else, treat it as a local file reference (useful for older images)
+//     return `https://backend.ridhsdesign.com/uploads/${imageUrl}`;
+// };
+
 
 async function handleAddProduct(req, res) {
     if (req.method !== 'POST') {
         return res.status(405).json({ message: 'Method Not Allowed' });
     }
 
-    if (!req.body) {
-        return res.status(400).json({ message: 'No product data found in request body' });
-    }
-
     const {
-        name,
-        description,
-        category,
-        subcategory,
-        price,
-        discountPrice,
-        colors,
-        sizes,
-        fabrics,
-        stockQuantity,
-        isFeatured,
-        isTrending,
-        careInstructions,
-        materialComposition,
-        occasion,
-        pattern,
-        length,
-        width,
-        weight,
-        blouseIncluded,
-        blouseFabric,
-        blouseLength,
-        stitchingType,
-        sleeveType,
-        neckType,
-        workType,
-        borderType,
-        zariType,
+        name, description, category, subcategory, price, discountPrice,
+        colors, sizes, fabrics, stockQuantity, isFeatured, isTrending,
+        careInstructions, materialComposition, occasion, pattern, length,
+        width, weight, blouseIncluded, blouseFabric, blouseLength,
+        stitchingType, sleeveType, neckType, workType, borderType, zariType,
     } = req.body;
 
-    // Get uploaded image filenames
-    const images = req.files ? req.files.map(file => file.filename) : [];
+    // 🖼️ Upload images to Google Drive
+    const imageUrls = [];
+    if (req.files && req.files.length > 0) {
+        for (let file of req.files) {
+            const url = await uploadToDrive(file);
+            imageUrls.push(url);
+        }
+    }
 
     // Basic validation
     if (!name || !price || !category || !subcategory || !stockQuantity) {
@@ -71,7 +54,7 @@ async function handleAddProduct(req, res) {
             colors,
             sizes,
             fabrics,
-            images,
+            images: imageUrls,
             stockQuantity,
             isFeatured,
             isTrending,
@@ -106,13 +89,8 @@ async function getAllProducts(req, res) {
     try {
         const products = await productService.getProducts(category);
 
-        // Add full image URLs
-        const productsWithImageUrls = products.map((product) => ({
-            ...product,
-            image_url: generateImageUrl(product.image_url),
-        }));
-
-        res.status(200).json(productsWithImageUrls);
+        // ✅ Don't wrap image_url with generateImageUrl anymore
+        res.status(200).json(products);
     } catch (error) {
         console.error('Error fetching products:', error);
         res.status(500).json({ message: 'Internal Server Error' });
@@ -121,26 +99,18 @@ async function getAllProducts(req, res) {
 
 // Get a single product by ID
 async function getProductById(req, res) {
-    console.log('Request params:', req.params); // Check what is inside req.params
-    const { id } = req.params;  // Should retrieve id from params
-
-    // Add extra logging to verify
-    console.log(`Product ID: ${id}`);
+    const { id } = req.params;
 
     try {
-        // Make sure id is available
         if (!id) {
             return res.status(400).json({ message: 'ID parameter is missing' });
         }
 
-        // Fetch product from the service
         const product = await productService.getProductById(id);
 
         if (product) {
-            // Generate the full image URL
-            product.image_url = generateImageUrl(product.image_url);  // Update the image URL with the full path
-
-            res.status(200).json(product);  // Send product with full image URL
+            // ✅ Don't use generateImageUrl here
+            res.status(200).json(product);
         } else {
             res.status(404).json({ message: 'Product not found' });
         }
@@ -152,30 +122,27 @@ async function getProductById(req, res) {
 
 
 
+
 // Get featured products
 async function getFeaturedProducts(req, res) {
     try {
         const products = await productService.getFeaturedProducts();
 
-        // Map through products to generate full image URLs
-        const productsWithImageUrls = products.map((product) => {
-            return {
-                ...product,
-                image_url: generateImageUrl(product.image_url),  // Add the full image URL
-            };
-        });
-
-        res.status(200).json(productsWithImageUrls);
+        // No need to generate full image URLs — they are already stored
+        res.status(200).json(products);
     } catch (error) {
         console.error('Error fetching featured products:', error);
         res.status(500).json({ message: 'Internal Server Error' });
     }
 }
 
+
 // Optional: trending
 async function getTrendingProducts(req, res) {
     try {
         const products = await productService.getTrendingProducts();
+
+        // ✅ Skip image_url mapping, return as-is
         res.status(200).json(products);
     } catch (error) {
         console.error('Error fetching trending products:', error);
