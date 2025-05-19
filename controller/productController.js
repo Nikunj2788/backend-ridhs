@@ -20,8 +20,8 @@ async function handleAddProduct(req, res) {
     const imageUrls = [];
     if (req.files && req.files.length > 0) {
         for (let file of req.files) {
-            const url = await uploadToDrive(file);
-            imageUrls.push(url);
+            const { shareableUrl } = await uploadToDrive(file);
+            imageUrls.push(shareableUrl); // ✅ just push the URL string
         }
     }
 

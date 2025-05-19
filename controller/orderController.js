@@ -11,17 +11,25 @@ async function createOrder(req, res) {
 }
 
 async function verifyPayment(req, res) {
-    try {
-        const { orderCreationId, razorpayPaymentId, razorpayOrderId, razorpaySignature } = req.body;
-        const isValid = await orderService.verifyPayment(orderCreationId, razorpayPaymentId, razorpaySignature);
-        if (isValid) {
-            res.status(200).json({ message: 'Payment verified successfully' });
-        } else {
-            res.status(400).json({ message: 'Invalid payment signature' });
-        }
-    } catch (error) {
-        res.status(500).json({ message: 'Error verifying payment' });
+  try {
+    const { razorpayPaymentId, razorpayOrderId, razorpaySignature } = req.body;
+
+    const isValid = await orderService.verifyPayment(
+      razorpayOrderId, // not orderCreationId
+      razorpayPaymentId,
+      razorpaySignature
+    );
+
+    if (isValid) {
+      res.status(200).json({ message: 'Payment verified successfully' });
+    } else {
+      res.status(400).json({ message: 'Invalid payment signature' });
     }
+  } catch (error) {
+    console.error('Payment verification error:', error);
+    res.status(500).json({ message: 'Error verifying payment' });
+  }
 }
+
 
 module.exports = { createOrder, verifyPayment };

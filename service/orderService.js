@@ -32,11 +32,15 @@ async function createOrder(orderData) {
   return { id: order.id };
 }
 
-async function verifyPayment(orderCreationId, razorpayPaymentId, razorpaySignature) {
-  const shasum = crypto.createHmac('sha256', process.env.RAZORPAY_SECRET);
-  shasum.update(`${orderCreationId}|${razorpayPaymentId}`);
-  const digest = shasum.digest('hex');
-  return digest === razorpaySignature;
+async function verifyPayment(razorpayOrderId, razorpayPaymentId, razorpaySignature) {
+  const secret = process.env.RAZORPAY_KEY_SECRET; // Make sure this is correct
+
+  const generatedSignature = crypto
+    .createHmac('sha256', secret)
+    .update(`${razorpayOrderId}|${razorpayPaymentId}`)
+    .digest('hex');
+
+  return generatedSignature === razorpaySignature;
 }
 
 module.exports = { createOrder, verifyPayment };

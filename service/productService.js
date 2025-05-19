@@ -154,12 +154,28 @@ async function getProductById(id) {
 }
 
 
-// ✅ Optional: Define getProducts to avoid export error
 async function getProducts() {
-    const query = `SELECT * FROM products`;
-    const result = await db.query(query);
-    return result.rows;
+  const productQuery = `SELECT * FROM products`;
+  const productResult = await db.query(productQuery);
+  const products = productResult.rows;
+
+  for (let product of products) {
+    const imageQuery = `
+      SELECT image_url
+      FROM product_images
+      WHERE product_id = $1
+      ORDER BY id ASC
+      LIMIT 1
+    `;
+    const imageResult = await db.query(imageQuery, [product.id]);
+
+    // Attach only the first image URL or null if none
+    product.image_url = imageResult.rows[0]?.image_url || null;
+  }
+
+  return products;
 }
+
 
 async function getFeaturedProducts() {
     try {
