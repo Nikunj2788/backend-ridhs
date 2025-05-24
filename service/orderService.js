@@ -3,8 +3,8 @@ const crypto = require('crypto');
 const db = require('../db/db');
 
 const razorpay = new Razorpay({
-  key_id: process.env.RAZORPAY_KEY,
-  key_secret: process.env.RAZORPAY_SECRET
+  key_id: process.env.RAZORPAY_KEY_ID,     // <- fix here
+  key_secret: process.env.RAZORPAY_KEY_SECRET // <- fix here
 });
 
 async function createOrder(orderData) {
@@ -33,7 +33,11 @@ async function createOrder(orderData) {
 }
 
 async function verifyPayment(razorpayOrderId, razorpayPaymentId, razorpaySignature) {
-  const secret = process.env.RAZORPAY_KEY_SECRET; // Make sure this is correct
+  const secret = process.env.RAZORPAY_KEY_SECRET;
+
+  if (!secret) {
+    throw new Error("RAZORPAY_KEY_SECRET is not defined in environment variables");
+  }
 
   const generatedSignature = crypto
     .createHmac('sha256', secret)

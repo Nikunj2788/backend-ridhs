@@ -12,6 +12,7 @@ const {
 // Add a new product
 router.post('/add', upload.array('images'), handleAddProduct);
 
+
 // Get all products or filtered by category
 router.get('/', getAllProducts);
 

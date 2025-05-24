@@ -16,17 +16,21 @@ async function handleAddProduct(req, res) {
         stitchingType, sleeveType, neckType, workType, borderType, zariType,
     } = req.body;
 
-    // 🖼️ Upload images to Google Drive
+    // Convert comma-separated strings to arrays (if applicable)
+    const parsedColors = typeof colors === 'string' ? colors.split(',').map(c => c.trim()) : colors;
+    const parsedSizes = typeof sizes === 'string' ? sizes.split(',').map(s => s.trim()) : sizes;
+    const parsedFabrics = typeof fabrics === 'string' ? fabrics.split(',').map(f => f.trim()) : fabrics;
+
     const imageUrls = [];
     if (req.files && req.files.length > 0) {
         for (let file of req.files) {
             const { shareableUrl } = await uploadToDrive(file);
-            imageUrls.push(shareableUrl); // ✅ just push the URL string
+            imageUrls.push(shareableUrl);
         }
     }
 
-    // Basic validation
     if (!name || !price || !category || !subcategory || !stockQuantity) {
+        console.warn('⚠️ Missing required fields');
         return res.status(400).json({ message: 'Required fields are missing' });
     }
 
@@ -38,9 +42,9 @@ async function handleAddProduct(req, res) {
             subcategory,
             price,
             discountPrice,
-            colors,
-            sizes,
-            fabrics,
+            colors: parsedColors,
+            sizes: parsedSizes,
+            fabrics: parsedFabrics,
             images: imageUrls,
             stockQuantity,
             isFeatured,
@@ -65,18 +69,16 @@ async function handleAddProduct(req, res) {
 
         res.status(200).json({ message: 'Product added successfully!' });
     } catch (error) {
-        console.error('Error saving product:', error);
         res.status(500).json({ message: 'Internal Server Error' });
     }
 }
+
 
 // Get all products with optional category filter
 async function getAllProducts(req, res) {
     const { category } = req.query;
     try {
         const products = await productService.getProducts(category);
-
-        // ✅ Don't wrap image_url with generateImageUrl anymore
         res.status(200).json(products);
     } catch (error) {
         console.error('Error fetching products:', error);
