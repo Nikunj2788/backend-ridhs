@@ -190,11 +190,27 @@ async function getProducts() {
 async function getFeaturedProducts() {
     try {
         const query = `
-      SELECT p.*, pi.image_url
-      FROM products p
-      LEFT JOIN product_images pi ON pi.product_id = p.id
-      WHERE p.is_featured = true
-    `;
+            SELECT 
+                p.*,
+                pi.image_url,
+                COALESCE(
+                    json_agg(DISTINCT ps.size) 
+                    FILTER (WHERE ps.size IS NOT NULL), 
+                    '[]'
+                ) AS sizes,
+                COALESCE(
+                    json_agg(DISTINCT pc.color) 
+                    FILTER (WHERE pc.color IS NOT NULL), 
+                    '[]'
+                ) AS colors
+            FROM products p
+            LEFT JOIN product_images pi ON pi.product_id = p.id
+            LEFT JOIN product_sizes ps ON ps.product_id = p.id
+            LEFT JOIN product_colors pc ON pc.product_id = p.id
+            WHERE p.is_featured = true
+            GROUP BY p.id, pi.image_url
+        `;
+        
         const result = await db.query(query);
         return result.rows;
     } catch (error) {
