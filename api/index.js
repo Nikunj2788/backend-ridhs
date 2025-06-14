@@ -44,6 +44,9 @@ app.use('/uploads', express.static(uploadsPath));
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 app.use('/api/subscribe', require('./subscribe'));
+app.use('/api/forgot-password', require('./forgotPassword'));
+app.use('/api/reset-password', require('./resetPassword'));
+
 
 
 // Health check
