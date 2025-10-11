@@ -2,11 +2,15 @@
 
 const express = require('express');
 const router = express.Router();
-const { createOrder, verifyPayment } = require('../controller/orderController');
+const { createOrder, verifyPayment ,updateOrder } = require('../controller/orderController');
 
 // POST /api/order/orders
 router.post('/orders', (req, res, next) => {
   createOrder(req, res, next);
+});
+
+router.put('/orders/:id', (req, res, next) => {
+  updateOrder(req, res, next);
 });
 
 // POST /api/order/payment/verify

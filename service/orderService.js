@@ -47,4 +47,57 @@ async function verifyPayment(razorpayOrderId, razorpayPaymentId, razorpaySignatu
   return generatedSignature === razorpaySignature;
 }
 
-module.exports = { createOrder, verifyPayment };
+async function updateOrder(orderId, updateData) {
+    try {
+        const fields = [];
+        const values = [];
+        let paramCount = 1;
+
+        // Build dynamic update query based on what fields are provided
+        if (updateData.order_status !== undefined) {
+            fields.push(`order_status = $${paramCount}`);
+            values.push(updateData.order_status);
+            paramCount++;
+        }
+
+        if (updateData.payment_status !== undefined) {
+            fields.push(`payment_status = $${paramCount}`);
+            values.push(updateData.payment_status);
+            paramCount++;
+        }
+
+        if (updateData.payment_method !== undefined) {
+            fields.push(`payment_method = $${paramCount}`);
+            values.push(updateData.payment_method);
+            paramCount++;
+        }
+
+        if (fields.length === 0) {
+            throw new Error('No fields to update');
+        }
+
+        // Add order ID as the last parameter
+        values.push(orderId);
+
+        const query = `
+            UPDATE orders 
+            SET ${fields.join(', ')}
+            WHERE id = $${paramCount}
+            RETURNING *
+        `;
+
+        const result = await db.query(query, values);
+        
+        if (result.rows.length === 0) {
+            return null;
+        }
+
+        return result.rows[0];
+    } catch (error) {
+        console.error('Error updating order:', error);
+        throw error;
+    }
+}
+
+
+module.exports = { createOrder, verifyPayment ,updateOrder };

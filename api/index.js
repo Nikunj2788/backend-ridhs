@@ -46,6 +46,8 @@ app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 app.use('/api/subscribe', require('./subscribe'));
 app.use('/api/forgot-password', require('./forgotPassword'));
 app.use('/api/reset-password', require('./resetPassword'));
+app.use('/api/order-listing', require('./orderListing'));
+
 
 
 
