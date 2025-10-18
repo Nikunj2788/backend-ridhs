@@ -5,6 +5,7 @@ async function saveProduct(productData) {
     const {
         name,
         description,
+        main_category,
         category,
         subcategory,
         price,
@@ -37,18 +38,19 @@ async function saveProduct(productData) {
     try {
         const query = `
         INSERT INTO products (
-            name, description, category, subcategory, price, discount_price,
+            name, description, main_category,category, subcategory, price, discount_price,
             stock_quantity, is_featured, is_trending, care_instructions, material_composition,
             occasion, pattern, length, width, weight, blouse_included, blouse_fabric,
             blouse_length, stitching_type, sleeve_type, neck_type, work_type, border_type, zari_type
         ) 
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25,$26)
         RETURNING id
         `;
 
         const values = [
             name,
             description,
+            main_category,
             category,
             subcategory,
             price === '' ? null : Number(price),
@@ -73,6 +75,9 @@ async function saveProduct(productData) {
             borderType || null,
             zariType || null,
         ];
+        console.log('Values array length:', values.length);
+        console.log('Values array:', values);
+        console.log('Main category value:', main_category);
 
         const result = await db.query(query, values);
         const productId = result.rows[0].id;
@@ -210,7 +215,7 @@ async function getFeaturedProducts() {
             WHERE p.is_featured = true
             GROUP BY p.id, pi.image_url
         `;
-        
+
         const result = await db.query(query);
         return result.rows;
     } catch (error) {

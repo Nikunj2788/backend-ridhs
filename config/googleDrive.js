@@ -10,7 +10,9 @@ const auth = new google.auth.GoogleAuth({
 
 const drive = google.drive({ version: 'v3', auth });
 
-const FOLDER_ID = '1AJna1CNph_AQ3GzJZmwq8pTAdDe-B17t';
+const FOLDER_ID = '1tRt0vwU2t0CxYmzM3nOMut7Twp0b5gfQ';
+//1AJna1CNph_AQ3GzJZmwq8pTAdDe-B17t
+
 
 async function uploadToDrive(file) {
     const tempFileName = `${Date.now()}-${Math.random().toString(36).substring(2)}-${file.originalname}`;

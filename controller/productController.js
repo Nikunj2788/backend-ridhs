@@ -9,7 +9,7 @@ async function handleAddProduct(req, res) {
     }
 
     const {
-        name, description, category, subcategory, price, discountPrice,
+        name, description, main_category, category, subcategory, price, discountPrice,
         colors, sizes, fabrics, stockQuantity, isFeatured, isTrending,
         careInstructions, materialComposition, occasion, pattern, length,
         width, weight, blouseIncluded, blouseFabric, blouseLength,
@@ -29,7 +29,7 @@ async function handleAddProduct(req, res) {
         }
     }
 
-    if (!name || !price || !category || !subcategory || !stockQuantity) {
+    if (!name || !price || !main_category || !category || !subcategory || !stockQuantity) {
         console.warn('⚠️ Missing required fields');
         return res.status(400).json({ message: 'Required fields are missing' });
     }
@@ -38,6 +38,7 @@ async function handleAddProduct(req, res) {
         await productService.saveProduct({
             name,
             description,
+            main_category,
             category,
             subcategory,
             price,
