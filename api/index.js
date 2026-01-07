@@ -23,7 +23,7 @@ app.use(cors({
       callback(new Error('Not allowed by CORS'));
     }
   },
-  methods: ['POST', 'GET', 'PUT', 'DELETE', 'OPTIONS'],
+  methods: ['POST', 'GET', 'PUT', 'DELETE', 'OPTIONS','PATCH'],
   allowedHeaders: ['Content-Type', 'Authorization'],
   credentials: true
 }));
@@ -47,8 +47,6 @@ app.use('/api/subscribe', require('./subscribe'));
 app.use('/api/forgot-password', require('./forgotPassword'));
 app.use('/api/reset-password', require('./resetPassword'));
 app.use('/api/order-listing', require('./orderListing'));
-
-
 
 
 // Health check

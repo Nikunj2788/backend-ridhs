@@ -6,24 +6,32 @@ const {
     getProductById,
     getFeaturedProducts,
     getTrendingProducts,
+    softDeleteProduct,
+    restoreProduct,
+    updateProduct,
     upload
 } = require('../controller/productController');
 
 // Add a new product
 router.post('/add', upload.array('images'), handleAddProduct);
 
-
-// Get all products or filtered by category
+// Get all products (Admin uses this with ?includeDeleted=true)
 router.get('/', getAllProducts);
 
-// Get featured products
+// Featured and Trending
 router.get('/featured', getFeaturedProducts);
-
-// Optional: Get trending products
 router.get('/trending', getTrendingProducts);
 
 // Get product by ID
 router.get('/:id', getProductById);
 
-module.exports = router;
+// Update name and price (The Edit Modal)
+router.put('/:id', updateProduct);
 
+// Move to Trash (Soft Delete)
+router.patch('/:id/delete', softDeleteProduct);
+
+// Restore from Trash
+router.patch('/:id/restore', restoreProduct);
+
+module.exports = router;

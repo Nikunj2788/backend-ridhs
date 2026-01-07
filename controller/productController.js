@@ -77,12 +77,11 @@ async function handleAddProduct(req, res) {
 
 // Get all products with optional category filter
 async function getAllProducts(req, res) {
-    const { category } = req.query;
+    const includeDeleted = req.query.includeDeleted === 'true';
     try {
-        const products = await productService.getProducts(category);
+        const products = await productService.getProducts(includeDeleted);
         res.status(200).json(products);
     } catch (error) {
-        console.error('Error fetching products:', error);
         res.status(500).json({ message: 'Internal Server Error' });
     }
 }
@@ -131,11 +130,56 @@ async function getFeaturedProducts(req, res) {
 async function getTrendingProducts(req, res) {
     try {
         const products = await productService.getTrendingProducts();
-
-        // ✅ Skip image_url mapping, return as-is
         res.status(200).json(products);
     } catch (error) {
         console.error('Error fetching trending products:', error);
+        res.status(500).json({ message: 'Internal Server Error' });
+    }
+}
+
+async function softDeleteProduct(req, res) {
+    const { id } = req.params;
+    try {
+        await productService.updateProductStatus(id, true); // Sets deleted = true
+        res.status(200).json({ message: 'Product moved to trash' });
+    } catch (error) {
+        console.error('Error soft deleting product:', error);
+        res.status(500).json({ message: 'Error moving product to trash' });
+    }
+}
+
+/**
+ * RESTORE: Bring product back from trash
+ * Route: PATCH /api/products/:id/restore
+ */
+async function restoreProduct(req, res) {
+    const { id } = req.params;
+    try {
+        await productService.updateProductStatus(id, false); // Sets deleted = false
+        res.status(200).json({ message: 'Product restored successfully' });
+    } catch (error) {
+        console.error('Error restoring product:', error);
+        res.status(500).json({ message: 'Error restoring product' });
+    }
+}
+
+/**
+ * UPDATE: Update specific fields (name, price)
+ * Route: PUT /api/products/:id
+ */
+async function updateProduct(req, res) {
+    const { id } = req.params;
+    const updateData = req.body; // Contains { name, price, etc. }
+
+    try {
+        const updated = await productService.updateProductDetails(id, updateData);
+        if (updated) {
+            res.status(200).json({ message: 'Product updated successfully' });
+        } else {
+            res.status(404).json({ message: 'Product not found' });
+        }
+    } catch (error) {
+        console.error('Error updating product:', error);
         res.status(500).json({ message: 'Internal Server Error' });
     }
 }
@@ -146,5 +190,8 @@ module.exports = {
     getProductById,
     getFeaturedProducts,
     getTrendingProducts,
+    softDeleteProduct,
+    restoreProduct,
+    updateProduct,
     upload,
 };

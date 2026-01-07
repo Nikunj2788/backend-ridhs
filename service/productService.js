@@ -169,26 +169,48 @@ async function getProductById(id) {
 }
 
 
-async function getProducts() {
-    const productQuery = `SELECT * FROM products`;
+async function getProducts(includeDeleted = false) {
+    // If includeDeleted is false, we only show live products (for customers)
+    // If true, we show everything (for admin)
+    const productQuery = includeDeleted
+        ? `SELECT * FROM products ORDER BY id DESC`
+        : `SELECT * FROM products WHERE deleted = false ORDER BY id DESC`;
+
     const productResult = await db.query(productQuery);
     const products = productResult.rows;
 
     for (let product of products) {
         const imageQuery = `
-      SELECT image_url
-      FROM product_images
-      WHERE product_id = $1
-      ORDER BY id ASC
-      LIMIT 1
-    `;
+            SELECT image_url
+            FROM product_images
+            WHERE product_id = $1
+            ORDER BY id ASC
+            LIMIT 1
+        `;
         const imageResult = await db.query(imageQuery, [product.id]);
-
-        // Attach only the first image URL or null if none
         product.image_url = imageResult.rows[0]?.image_url || null;
     }
 
     return products;
+}
+
+async function updateProductStatus(id, isDeleted) {
+    const query = `UPDATE products SET deleted = $1 WHERE id = $2 RETURNING *`;
+    const result = await db.query(query, [isDeleted, id]);
+    return result.rows[0];
+}
+
+// 2. Update Details (Name and Price)
+async function updateProductDetails(id, data) {
+    const { name, price, stock_quantity } = data;
+    const query = `
+        UPDATE products 
+        SET name = $1, price = $2, stock_quantity = $3
+        WHERE id = $4 
+        RETURNING *
+    `;
+    const result = await db.query(query, [name, price, stock_quantity, id]);
+    return result.rows[0];
 }
 
 
@@ -243,7 +265,9 @@ async function getTrendingProducts() {
 module.exports = {
     saveProduct,
     getProductById,
-    getProducts, // ✅ Now defined
+    getProducts,
     getFeaturedProducts,
     getTrendingProducts,
+    updateProductStatus,
+    updateProductDetails
 };
