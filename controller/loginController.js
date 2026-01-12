@@ -28,6 +28,7 @@ async function handleLoginForm(req, res) {
         res.status(200).json({
             message: 'Login successful',
             user: {
+                id: user.id,
                 name: user.first_name,
                 email: user.email,
                 role_id: user.role_id

@@ -4,6 +4,7 @@ const db = require('../db/db');
 async function saveProduct(productData) {
     const {
         name,
+        vendor_id,
         description,
         main_category,
         category,
@@ -38,7 +39,7 @@ async function saveProduct(productData) {
     try {
         const query = `
         INSERT INTO products (
-            name, description, main_category,category, subcategory, price, discount_price,
+            name,vendor_id, description, main_category,category, subcategory, price, discount_price,
             stock_quantity, is_featured, is_trending, care_instructions, material_composition,
             occasion, pattern, length, width, weight, blouse_included, blouse_fabric,
             blouse_length, stitching_type, sleeve_type, neck_type, work_type, border_type, zari_type
@@ -49,6 +50,7 @@ async function saveProduct(productData) {
 
         const values = [
             name,
+            vendor_id,
             description,
             main_category,
             category,
@@ -126,16 +128,12 @@ async function saveProduct(productData) {
 
 
 // ✅ Final version of getProductById with images and sizes
+// ✅ Final version of getProductById - now including vendor check security if needed
 async function getProductById(id) {
     console.log(`Inside productService - ID: ${id}`);
 
-    // Fetch the product
-    const productQuery = `
-    SELECT * FROM products WHERE id = $1
-  `;
+    const productQuery = `SELECT * FROM products WHERE id = $1`;
     const productResult = await db.query(productQuery, [id]);
-
-    console.log('Product Query Result:', productResult.rows);
 
     if (productResult.rows.length === 0) {
         console.log('Product not found.');
@@ -148,37 +146,42 @@ async function getProductById(id) {
     const imageQuery = `SELECT image_url FROM product_images WHERE product_id = $1`;
     const imageResult = await db.query(imageQuery, [id]);
     product.images = imageResult.rows.map(row => row.image_url);
-    console.log('Product Images:', product.images);
 
     // Fetch all sizes
     const sizeQuery = `SELECT size FROM product_sizes WHERE product_id = $1`;
     const sizeResult = await db.query(sizeQuery, [id]);
     product.sizes = sizeResult.rows.map(row => row.size);
-    console.log('Product Sizes:', product.sizes); // 🟡 Debug: Log sizes result
 
     // Fetch all colors
     const colorQuery = `SELECT color FROM product_colors WHERE product_id = $1`;
     const colorResult = await db.query(colorQuery, [id]);
     product.colors = colorResult.rows.map(row => row.color);
-    console.log('Product Colors:', product.colors);
-
-    // Final product object before returning
-    console.log('Final Product Object:', product);
 
     return product;
 }
 
+// ✅ Final version of getProducts - handles filtering by vendorId
+async function getProducts(includeDeleted = false, vendorId = null) {
+    let query = `SELECT * FROM products WHERE 1=1`;
+    const params = [];
 
-async function getProducts(includeDeleted = false) {
-    // If includeDeleted is false, we only show live products (for customers)
-    // If true, we show everything (for admin)
-    const productQuery = includeDeleted
-        ? `SELECT * FROM products ORDER BY id DESC`
-        : `SELECT * FROM products WHERE deleted = false ORDER BY id DESC`;
+    // 1. Filter by soft delete status
+    if (!includeDeleted) {
+        query += ` AND deleted = false`;
+    }
 
-    const productResult = await db.query(productQuery);
+    // 2. IMPORTANT: Filter by vendorId if provided (for Dukandar dashboard)
+    if (vendorId) {
+        params.push(vendorId);
+        query += ` AND vendor_id = $${params.length}`;
+    }
+
+    query += ` ORDER BY id DESC`;
+
+    const productResult = await db.query(query, params);
     const products = productResult.rows;
 
+    // Fetch first image for each product (for the listing cards)
     for (let product of products) {
         const imageQuery = `
             SELECT image_url

@@ -9,12 +9,16 @@ async function handleAddProduct(req, res) {
     }
 
     const {
-        name, description, main_category, category, subcategory, price, discountPrice,
+        name, vendor_id, description, main_category, category, subcategory, price, discountPrice,
         colors, sizes, fabrics, stockQuantity, isFeatured, isTrending,
         careInstructions, materialComposition, occasion, pattern, length,
         width, weight, blouseIncluded, blouseFabric, blouseLength,
         stitchingType, sleeveType, neckType, workType, borderType, zariType,
     } = req.body;
+
+    if (!vendor_id) {
+        return res.status(400).json({ message: 'Vendor ID is required to link product' });
+    }
 
     // Convert comma-separated strings to arrays (if applicable)
     const parsedColors = typeof colors === 'string' ? colors.split(',').map(c => c.trim()) : colors;
@@ -37,6 +41,7 @@ async function handleAddProduct(req, res) {
     try {
         await productService.saveProduct({
             name,
+            vendor_id,
             description,
             main_category,
             category,
@@ -78,8 +83,9 @@ async function handleAddProduct(req, res) {
 // Get all products with optional category filter
 async function getAllProducts(req, res) {
     const includeDeleted = req.query.includeDeleted === 'true';
+    const vendorId = req.query.vendorId;
     try {
-        const products = await productService.getProducts(includeDeleted);
+        const products = await productService.getProducts(includeDeleted,vendorId);
         res.status(200).json(products);
     } catch (error) {
         res.status(500).json({ message: 'Internal Server Error' });
