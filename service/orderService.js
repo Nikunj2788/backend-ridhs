@@ -8,28 +8,59 @@ const razorpay = new Razorpay({
 });
 
 async function createOrder(orderData) {
-  const { items, shippingDetails, total, subtotal, shipping } = orderData;
+  const {
+    items,
+    shippingDetails,
+    total,
+    subtotal,
+    shipping,
+    payment_method,
+    payment_status,
+    user_id,
+    vendor_id
+  } = orderData;
 
-  // Save order to database
   const query = `
-    INSERT INTO orders (items, shipping_details, total, subtotal, shipping)
-    VALUES ($1, $2, $3, $4, $5)
+    INSERT INTO orders (
+        items, 
+        shipping_details, 
+        total, 
+        subtotal, 
+        shipping, 
+        payment_method, 
+        payment_status, 
+        user_id, 
+        vendor_id,
+        order_status
+    )
+    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
     RETURNING id
   `;
-  const values = [JSON.stringify(items), JSON.stringify(shippingDetails), total, subtotal, shipping];
+
+  const values = [
+    JSON.stringify(items),
+    JSON.stringify(shippingDetails),
+    total,
+    subtotal,
+    shipping,
+    payment_method || 'Razorpay',
+    payment_status || 'pending',
+    user_id || null,
+    vendor_id || null,
+    'pending'
+  ];
+
   const result = await db.query(query, values);
   const orderId = result.rows[0].id;
 
-  // Create Razorpay order
   const options = {
-    amount: total * 100,
+    amount: Math.round(total * 100),
     currency: 'INR',
-    receipt: `order_${orderId}`,
-    payment_capture: 1
+    receipt: `order_${orderId}`
   };
-  const order = await razorpay.orders.create(options);
 
-  return { id: order.id };
+  const razorpayOrder = await razorpay.orders.create(options);
+  return { id: razorpayOrder.id, db_id: orderId };
 }
 
 async function verifyPayment(razorpayOrderId, razorpayPaymentId, razorpaySignature) {
@@ -48,56 +79,56 @@ async function verifyPayment(razorpayOrderId, razorpayPaymentId, razorpaySignatu
 }
 
 async function updateOrder(orderId, updateData) {
-    try {
-        const fields = [];
-        const values = [];
-        let paramCount = 1;
+  try {
+    const fields = [];
+    const values = [];
+    let paramCount = 1;
 
-        // Build dynamic update query based on what fields are provided
-        if (updateData.order_status !== undefined) {
-            fields.push(`order_status = $${paramCount}`);
-            values.push(updateData.order_status);
-            paramCount++;
-        }
+    // Build dynamic update query based on what fields are provided
+    if (updateData.order_status !== undefined) {
+      fields.push(`order_status = $${paramCount}`);
+      values.push(updateData.order_status);
+      paramCount++;
+    }
 
-        if (updateData.payment_status !== undefined) {
-            fields.push(`payment_status = $${paramCount}`);
-            values.push(updateData.payment_status);
-            paramCount++;
-        }
+    if (updateData.payment_status !== undefined) {
+      fields.push(`payment_status = $${paramCount}`);
+      values.push(updateData.payment_status);
+      paramCount++;
+    }
 
-        if (updateData.payment_method !== undefined) {
-            fields.push(`payment_method = $${paramCount}`);
-            values.push(updateData.payment_method);
-            paramCount++;
-        }
+    if (updateData.payment_method !== undefined) {
+      fields.push(`payment_method = $${paramCount}`);
+      values.push(updateData.payment_method);
+      paramCount++;
+    }
 
-        if (fields.length === 0) {
-            throw new Error('No fields to update');
-        }
+    if (fields.length === 0) {
+      throw new Error('No fields to update');
+    }
 
-        // Add order ID as the last parameter
-        values.push(orderId);
+    // Add order ID as the last parameter
+    values.push(orderId);
 
-        const query = `
+    const query = `
             UPDATE orders 
             SET ${fields.join(', ')}
             WHERE id = $${paramCount}
             RETURNING *
         `;
 
-        const result = await db.query(query, values);
-        
-        if (result.rows.length === 0) {
-            return null;
-        }
+    const result = await db.query(query, values);
 
-        return result.rows[0];
-    } catch (error) {
-        console.error('Error updating order:', error);
-        throw error;
+    if (result.rows.length === 0) {
+      return null;
     }
+
+    return result.rows[0];
+  } catch (error) {
+    console.error('Error updating order:', error);
+    throw error;
+  }
 }
 
 
-module.exports = { createOrder, verifyPayment ,updateOrder };
+module.exports = { createOrder, verifyPayment, updateOrder };

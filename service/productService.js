@@ -237,7 +237,8 @@ async function getFeaturedProducts() {
             LEFT JOIN product_images pi ON pi.product_id = p.id
             LEFT JOIN product_sizes ps ON ps.product_id = p.id
             LEFT JOIN product_colors pc ON pc.product_id = p.id
-            WHERE p.is_featured = true
+            WHERE p.is_featured = true 
+              AND p.deleted = false
             GROUP BY p.id, pi.image_url
         `;
 
@@ -252,11 +253,12 @@ async function getFeaturedProducts() {
 async function getTrendingProducts() {
     try {
         const query = `
-      SELECT p.*, pi.image_url
-      FROM products p
-      LEFT JOIN product_images pi ON pi.product_id = p.id
-      WHERE p.is_trending = true
-    `;
+            SELECT p.*, pi.image_url
+            FROM products p
+            LEFT JOIN product_images pi ON pi.product_id = p.id
+            WHERE p.is_trending = true 
+              AND p.deleted = false
+        `;
         const result = await db.query(query);
         return result.rows;
     } catch (error) {
