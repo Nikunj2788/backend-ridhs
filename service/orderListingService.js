@@ -3,43 +3,43 @@ const db = require('../db/db');
 async function getAllOrders(filters = {}) {
     try {
         let query = `
-      SELECT 
-        id,
-        shipping_details,
-        items,
-        subtotal,
-        shipping AS shippingCharge,
-        total,
-        created_at,
-        payment_method,
-        payment_status,
-        order_status
-      FROM orders
-    `;
+            SELECT id, shipping_details, items, subtotal, 
+                   shipping AS shippingCharge, total, created_at, 
+                   payment_method, payment_status, order_status
+            FROM orders
+        `;
 
         const conditions = [];
         const values = [];
         let paramCount = 1;
 
-        // Search filter
+        // 1. Add Vendor Filter
+        if (filters.vendorId) {
+            conditions.push(`vendor_id = $${paramCount}`);
+            values.push(filters.vendorId);
+            paramCount++;
+        }
+
+        // 2. Add Search Filter
         if (filters.search) {
             conditions.push(`(
-        id::text ILIKE $${paramCount} OR
-        shipping_details->>'firstName' ILIKE $${paramCount} OR
-        shipping_details->>'lastName' ILIKE $${paramCount} OR
-        shipping_details->>'phone' ILIKE $${paramCount}
-      )`);
+                id::text ILIKE $${paramCount} OR
+                shipping_details->>'firstName' ILIKE $${paramCount} OR
+                shipping_details->>'lastName' ILIKE $${paramCount} OR
+                shipping_details->>'phone' ILIKE $${paramCount}
+            )`);
             values.push(`%${filters.search}%`);
             paramCount++;
         }
 
-        // Status filter
+        // 3. Add Status Filter
         if (filters.status && filters.status !== 'all') {
             conditions.push(`order_status = $${paramCount}`);
             values.push(filters.status);
             paramCount++;
         }
 
+        // Build the WHERE clause properly
         if (conditions.length > 0) {
             query += ' WHERE ' + conditions.join(' AND ');
         }
@@ -63,12 +63,10 @@ async function getAllOrders(filters = {}) {
             status: order.order_status
         }));
     } catch (error) {
-        console.error('❌ Error in orderListingService.getAllOrders:', error);
+        console.error('Error in orderListingService.getAllOrders:', error);
         throw error;
     }
 }
-
-
 
 async function getOrderById(orderId) {
     try {
@@ -138,9 +136,10 @@ async function getOrderById(orderId) {
     }
 }
 
-async function getOrderStats() {
+async function getOrderStats(vendorId) {
     try {
-        const query = `
+        // 1. Change 'const' to 'let' so the string can be modified
+        let query = `
             SELECT 
                 COUNT(*) as total_orders,
                 COUNT(CASE WHEN order_status = 'pending' THEN 1 END) as pending_orders,
@@ -154,7 +153,15 @@ async function getOrderStats() {
             FROM orders
         `;
 
-        const result = await db.query(query);
+        const values = [];
+        // 2. Append the WHERE clause if vendorId exists
+        if (vendorId) {
+            query += ` WHERE vendor_id = $1`;
+            values.push(vendorId);
+        }
+
+        // 3. CRITICAL: You must pass 'values' as the second argument
+        const result = await db.query(query, values);
         const stats = result.rows[0];
 
         return {

@@ -1,17 +1,16 @@
 const orderListingService = require('../service/orderListingService');
 
-// ✅ Controller: Get all orders
+// Controller: Get all orders
 async function getAllOrders(req, res) {
   try {
-    const { status, search } = req.query;
+    const { status, search, vendorId } = req.query;
 
-    // Create filters object
     const filters = {
       status: status || 'all',
-      search: search || ''
+      search: search || '',
+      vendorId: vendorId || null 
     };
 
-    // Call service
     const orders = await orderListingService.getAllOrders(filters);
 
     res.status(200).json({
@@ -21,11 +20,7 @@ async function getAllOrders(req, res) {
     });
   } catch (error) {
     console.error('❌ Error fetching orders:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Internal Server Error',
-      error: error.message
-    });
+    res.status(500).json({ success: false, message: 'Internal Server Error' });
   }
 }
 
@@ -56,21 +51,20 @@ async function getOrderById(req, res) {
     }
 }
 
+// controller/orderListingController.js
 async function getOrderStats(req, res) {
     try {
-        const stats = await orderListingService.getOrderStats();
+        // If your frontend sends ?vendorId=xxx, it is in req.query
+        const vendorId = req.query.vendorId; 
+        
+        const stats = await orderListingService.getOrderStats(vendorId);
 
         res.status(200).json({
             success: true,
             data: stats
         });
     } catch (error) {
-        console.error('Error fetching order stats:', error);
-        res.status(500).json({
-            success: false,
-            message: 'Internal Server Error',
-            error: error.message
-        });
+        res.status(500).json({ success: false, message: error.message });
     }
 }
 
