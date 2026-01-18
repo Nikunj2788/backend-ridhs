@@ -130,5 +130,33 @@ async function updateOrder(orderId, updateData) {
   }
 }
 
+async function submitReview(reviewData) {
+  const {
+    product_id,
+    order_id,
+    user_id,
+    vendor_id,
+    rating,
+    comment
+  } = reviewData;
 
-module.exports = { createOrder, verifyPayment, updateOrder };
+  const query = `
+    INSERT INTO reviews (
+        product_id, 
+        order_id, 
+        user_id, 
+        vendor_id, 
+        rating, 
+        comment
+    )
+    VALUES ($1, $2, $3, $4, $5, $6)
+    RETURNING id, created_at
+  `;
+
+  const values = [product_id, order_id, user_id, vendor_id, rating, comment];
+
+  const result = await db.query(query, values);
+  return result.rows[0];
+}
+
+module.exports = { createOrder, verifyPayment, updateOrder, submitReview };

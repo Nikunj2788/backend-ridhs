@@ -82,4 +82,46 @@ async function updateOrder(req, res) {
   }
 }
 
-module.exports = { createOrder, verifyPayment, updateOrder };
+async function submitReview(req, res) {
+  try {
+    const { product_id, order_id, user_id, vendor_id, rating, comment } = req.body;
+
+    // Basic Validation
+    if (!product_id || !order_id || !rating) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Product ID, Order ID, and Rating are required.' 
+      });
+    }
+
+    if (rating < 1 || rating > 5) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Rating must be between 1 and 5.' 
+      });
+    }
+
+    const review = await orderService.submitReview({
+      product_id,
+      order_id,
+      user_id,
+      vendor_id,
+      rating,
+      comment
+    });
+
+    res.status(201).json({
+      success: true,
+      message: 'Review submitted successfully',
+      data: review
+    });
+  } catch (error) {
+    console.error('❌ Error submitting review:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Internal Server Error' 
+    });
+  }
+}
+
+module.exports = { createOrder, verifyPayment, updateOrder, submitReview };
