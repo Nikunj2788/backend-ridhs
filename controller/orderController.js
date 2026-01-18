@@ -88,16 +88,16 @@ async function submitReview(req, res) {
 
     // Basic Validation
     if (!product_id || !order_id || !rating) {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'Product ID, Order ID, and Rating are required.' 
+      return res.status(400).json({
+        success: false,
+        message: 'Product ID, Order ID, and Rating are required.'
       });
     }
 
     if (rating < 1 || rating > 5) {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'Rating must be between 1 and 5.' 
+      return res.status(400).json({
+        success: false,
+        message: 'Rating must be between 1 and 5.'
       });
     }
 
@@ -117,11 +117,31 @@ async function submitReview(req, res) {
     });
   } catch (error) {
     console.error('❌ Error submitting review:', error);
-    res.status(500).json({ 
-      success: false, 
-      message: 'Internal Server Error' 
+    res.status(500).json({
+      success: false,
+      message: 'Internal Server Error'
     });
   }
 }
 
-module.exports = { createOrder, verifyPayment, updateOrder, submitReview };
+async function getOrdersByUser(req, res) {
+  try {
+    const { userId } = req.query;
+
+    if (!userId) {
+      return res.status(400).json({ success: false, message: 'User ID is required' });
+    }
+
+    const orders = await orderService.getOrdersByUserId(userId);
+
+    res.status(200).json({
+      success: true,
+      data: orders
+    });
+  } catch (error) {
+    console.error('Error fetching user orders:', error);
+    res.status(500).json({ success: false, message: 'Internal Server Error' });
+  }
+}
+
+module.exports = { createOrder, verifyPayment, updateOrder, submitReview, getOrdersByUser };

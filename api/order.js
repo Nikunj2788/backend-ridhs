@@ -2,7 +2,7 @@
 
 const express = require('express');
 const router = express.Router();
-const { createOrder, verifyPayment, updateOrder, submitReview } = require('../controller/orderController');
+const { createOrder, verifyPayment, updateOrder, submitReview, getOrdersByUser } = require('../controller/orderController');
 
 // POST /api/order/orders
 router.post('/orders', (req, res, next) => {
@@ -20,6 +20,10 @@ router.post('/payment/verify', (req, res, next) => {
 
 router.post('/reviews', (req, res, next) => {
   submitReview(req, res, next);
+});
+
+router.get('/', (req, res, next) => {
+  getOrdersByUser(req, res, next);
 });
 
 module.exports = router;

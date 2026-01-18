@@ -159,4 +159,19 @@ async function submitReview(reviewData) {
   return result.rows[0];
 }
 
-module.exports = { createOrder, verifyPayment, updateOrder, submitReview };
+async function getOrdersByUserId(userId) {
+  try {
+    const query = `
+      SELECT * FROM orders 
+      WHERE user_id = $1 
+      ORDER BY created_at DESC
+    `;
+    const result = await db.query(query, [userId]);
+    return result.rows;
+  } catch (error) {
+    console.error('Database error in getOrdersByUserId:', error);
+    throw error;
+  }
+}
+
+module.exports = { createOrder, verifyPayment, updateOrder, submitReview, getOrdersByUserId };
