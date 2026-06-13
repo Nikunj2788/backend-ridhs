@@ -28,8 +28,10 @@ app.use(cors({
   credentials: true
 }));
 
+
 app.use(morgan('combined'));
-app.use(express.json());
+app.use(express.json({ limit: '500mb' }));
+app.use(express.urlencoded({ limit: '500mb', extended: true }));
 
 // API routes
 
@@ -41,12 +43,11 @@ app.use('/api/login', require('./login'));
 app.use('/api/order', require('./order'));
 const uploadsPath = path.join(__dirname, '..', 'uploads');
 app.use('/uploads', express.static(uploadsPath));
-app.use(express.json({ limit: '50mb' }));
-app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 app.use('/api/subscribe', require('./subscribe'));
 app.use('/api/forgot-password', require('./forgotPassword'));
 app.use('/api/reset-password', require('./resetPassword'));
 app.use('/api/order-listing', require('./orderListing'));
+app.use("/api/chat", require("./chat"));
 
 
 // Health check

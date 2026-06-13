@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+
 const {
     handleAddProduct,
     getAllProducts,
@@ -9,13 +10,19 @@ const {
     softDeleteProduct,
     restoreProduct,
     updateProduct,
-    upload
+    upload,
+    handleBulkAddProducts,
+    uploadImage,
+    uploadMultipleImages,
+    createUploadSession,
+    finalizeUpload,
+    proxyUpload,
 } = require('../controller/productController');
 
-// Add a new product
+// Add a new product (uses multer)
 router.post('/add', upload.array('images'), handleAddProduct);
 
-// Get all products (Admin uses this with ?includeDeleted=true)
+// Get all products
 router.get('/', getAllProducts);
 
 // Featured and Trending
@@ -25,13 +32,29 @@ router.get('/trending', getTrendingProducts);
 // Get product by ID
 router.get('/:id', getProductById);
 
-// Update name and price (The Edit Modal)
+// Update product
 router.put('/:id', updateProduct);
 
-// Move to Trash (Soft Delete)
+// Soft delete
 router.patch('/:id/delete', softDeleteProduct);
 
-// Restore from Trash
+// Restore
 router.patch('/:id/restore', restoreProduct);
+
+// Bulk product upload (JSON only)
+router.post('/bulk', handleBulkAddProducts);
+
+// Single image upload (multer → drive)
+router.post('/upload', upload.single('image'), uploadImage);
+
+// Multiple image upload (multer → drive)
+router.post('/upload-multiple', upload.array('images', 100), uploadMultipleImages);
+
+//  Direct-to-Google-Drive (NO multer)
+router.post('/create-upload-session', createUploadSession);
+
+router.post('/finalize-upload', finalizeUpload);
+
+router.post('/proxy-upload', upload.single('file'), proxyUpload);
 
 module.exports = router;

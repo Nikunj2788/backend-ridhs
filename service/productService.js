@@ -267,6 +267,38 @@ async function getTrendingProducts() {
     }
 }
 
+
+async function searchProduct(message) {
+    const query = `
+    SELECT
+      p.id,
+      p.name,
+      p.price,
+      p.discount_price,
+      p.main_category,
+      p.category,
+      pi.image_url
+    FROM products p
+    LEFT JOIN product_images pi
+      ON pi.product_id = p.id
+    WHERE
+      p.deleted = false
+      AND (
+        LOWER(p.name) LIKE LOWER($1)
+        OR LOWER(p.category) LIKE LOWER($1)
+        OR LOWER(p.subcategory) LIKE LOWER($1)
+        OR LOWER(p.main_category) LIKE LOWER($1)
+        OR LOWER(p.description) LIKE LOWER($1)
+      )
+    LIMIT 5
+  `;
+
+    const result = await db.query(query, [`%${message}%`]);
+
+    return result.rows;
+}
+
+
 module.exports = {
     saveProduct,
     getProductById,
@@ -274,5 +306,6 @@ module.exports = {
     getFeaturedProducts,
     getTrendingProducts,
     updateProductStatus,
-    updateProductDetails
+    updateProductDetails,
+    searchProduct
 };

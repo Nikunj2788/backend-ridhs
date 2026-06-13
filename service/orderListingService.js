@@ -138,7 +138,9 @@ async function getOrderById(orderId) {
 
 async function getOrderStats(vendorId) {
     try {
-        // 1. Change 'const' to 'let' so the string can be modified
+        // Log the ID to see if it is actually coming from the frontend/controller
+        console.log("DEBUG: Received vendorId in Service:", vendorId);
+
         let query = `
             SELECT 
                 COUNT(*) as total_orders,
@@ -154,13 +156,14 @@ async function getOrderStats(vendorId) {
         `;
 
         const values = [];
-        // 2. Append the WHERE clause if vendorId exists
-        if (vendorId) {
+        // Use a stricter check: ensure vendorId isn't just a string "undefined" or null
+        if (vendorId && vendorId !== 'undefined' && vendorId !== 'null') {
             query += ` WHERE vendor_id = $1`;
             values.push(vendorId);
         }
 
-        // 3. CRITICAL: You must pass 'values' as the second argument
+        console.log("DEBUG: Final Executed Query:", query);
+
         const result = await db.query(query, values);
         const stats = result.rows[0];
 

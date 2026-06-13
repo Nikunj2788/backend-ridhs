@@ -54,11 +54,8 @@ async function getOrderById(req, res) {
 // controller/orderListingController.js
 async function getOrderStats(req, res) {
     try {
-        // If your frontend sends ?vendorId=xxx, it is in req.query
-        const vendorId = req.query.vendorId; 
-        
+        const vendorId = req.query.vendorId;    
         const stats = await orderListingService.getOrderStats(vendorId);
-
         res.status(200).json({
             success: true,
             data: stats

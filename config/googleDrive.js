@@ -9,6 +9,9 @@ const auth = new google.auth.GoogleAuth({
 });
 
 const drive = google.drive({ version: 'v3', auth });
+console.log('AUTH CLIENT:', auth);
+console.log('DRIVE:', drive);
+
 
 const FOLDER_ID = '1tRt0vwU2t0CxYmzM3nOMut7Twp0b5gfQ';
 //1AJna1CNph_AQ3GzJZmwq8pTAdDe-B17t
@@ -56,4 +59,7 @@ async function uploadToDrive(file) {
         }
     }
 }
-module.exports = { uploadToDrive };
+module.exports = {
+    uploadToDrive, drive, auth,
+    FOLDER_ID,
+};

@@ -1,7 +1,6 @@
 const productService = require('../service/productService');
 const upload = require('../config/multer');
-const { uploadToDrive } = require('../config/googleDrive'); // ✅ adjust path if needed
-
+const { uploadToDrive, FOLDER_ID, drive, auth } = require('../config/googleDrive');
 
 async function handleAddProduct(req, res) {
     if (req.method !== 'POST') {
@@ -85,7 +84,7 @@ async function getAllProducts(req, res) {
     const includeDeleted = req.query.includeDeleted === 'true';
     const vendorId = req.query.vendorId;
     try {
-        const products = await productService.getProducts(includeDeleted,vendorId);
+        const products = await productService.getProducts(includeDeleted, vendorId);
         res.status(200).json(products);
     } catch (error) {
         res.status(500).json({ message: 'Internal Server Error' });
@@ -190,6 +189,229 @@ async function updateProduct(req, res) {
     }
 }
 
+async function handleBulkAddProducts(req, res) {
+    try {
+        const { products } = req.body;
+
+        if (!Array.isArray(products) || products.length === 0) {
+            return res.status(400).json({ message: 'Products array is required' });
+        }
+
+        const results = await Promise.allSettled(
+            products.map((product) =>
+                productService.saveProduct({
+                    ...product,
+                    price: product.price || null,
+                    discountPrice: product.discountPrice || null,
+                    stockQuantity: product.stockQuantity || null,
+                })
+            )
+        );
+
+        const success = [];
+        const failed = [];
+
+        results.forEach((result, index) => {
+            if (result.status === 'fulfilled') {
+                success.push({
+                    index,
+                    name: products[index].name,
+                });
+            } else {
+                failed.push({
+                    index,
+                    name: products[index].name,
+                    error: result.reason?.message || 'Unknown error',
+                });
+            }
+        });
+
+        res.status(207).json({
+            message: 'Bulk upload processed',
+            total: products.length,
+            successCount: success.length,
+            failedCount: failed.length,
+            success,
+            failed,
+        });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ message: 'Bulk upload failed' });
+    }
+}
+
+const uploadImage = async (req, res) => {
+    try {
+        if (!req.file) {
+            return res.status(400).json({ message: 'Image file required' });
+        }
+
+        const { shareableUrl } = await uploadToDrive(req.file);
+
+        res.status(200).json({ url: shareableUrl });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ message: 'Image upload failed' });
+    }
+};
+
+const uploadMultipleImages = async (req, res) => {
+    try {
+        if (!req.files || req.files.length === 0) {
+            return res.status(400).json({ message: 'Image files required' });
+        }
+
+        const urls = [];
+
+        for (const file of req.files) {
+            const { shareableUrl } = await uploadToDrive(file);
+            urls.push(shareableUrl);
+        }
+
+        res.status(200).json({ urls });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ message: 'Bulk image upload failed' });
+    }
+};
+
+const createUploadSession = async (req, res) => {
+    try {
+        const { fileName, mimeType } = req.body;
+
+        // 1. Get Access Token
+        const authClient = await auth.getClient();
+        const tokenResponse = await authClient.getAccessToken();
+        const accessToken = tokenResponse.token;
+
+        // 2. Create the file metadata FIRST using the drive library
+        // This gives us the fileId immediately and reliably
+        const fileMetadata = await drive.files.create({
+            requestBody: {
+                name: fileName,
+                parents: [FOLDER_ID],
+            },
+            fields: 'id',
+        });
+
+        const fileId = fileMetadata.data.id;
+
+        // 3. Now start the resumable session for this specific File ID
+        // Note the URL change: it now includes the fileId
+        const googleRes = await fetch(`https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=resumable`, {
+            method: 'PATCH', // Use PATCH to update the existing empty file with content
+            headers: {
+                'Authorization': `Bearer ${accessToken}`,
+                'X-Upload-Content-Type': mimeType,
+            },
+        });
+
+        const uploadUrl = googleRes.headers.get('location');
+
+        if (!uploadUrl) {
+            throw new Error('Failed to generate uploadUrl from Google.');
+        }
+
+        // 4. Make it public
+        await drive.permissions.create({
+            fileId: fileId,
+            requestBody: { role: 'reader', type: 'anyone' },
+        });
+
+        const publicUrl = `https://drive.google.com/uc?export=view&id=${fileId}`;
+
+        console.log('✅ SUCCESS: Session Created for ID:', fileId);
+
+        res.json({
+            uploadUrl,
+            fileId,
+            publicUrl
+        });
+
+    } catch (err) {
+        console.error('🔴 SESSION ERROR:', err.message);
+        res.status(500).json({ error: err.message });
+    }
+};
+
+
+const proxyUpload = async (req, res) => {
+    try {
+        if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
+
+        const fileName = req.file.originalname;
+        const mimeType = req.file.mimetype;
+
+        // 1. Get Access Token (Same as your session logic)
+        const authClient = await auth.getClient();
+        const tokenResponse = await authClient.getAccessToken();
+        const accessToken = tokenResponse.token;
+
+        // 2. Create Metadata
+        const fileMetadata = await drive.files.create({
+            requestBody: { name: fileName, parents: [FOLDER_ID] },
+            fields: 'id',
+        });
+        const fileId = fileMetadata.data.id;
+
+        // 3. Start Resumable Session
+        const sessionRes = await fetch(`https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=resumable`, {
+            method: 'PATCH',
+            headers: {
+                'Authorization': `Bearer ${accessToken}`,
+                'X-Upload-Content-Type': mimeType,
+            },
+        });
+
+        const uploadUrl = sessionRes.headers.get('location');
+
+        // 4. PERFORM THE ACTUAL UPLOAD FROM SERVER (Fixes CORS)
+        const uploadRes = await fetch(uploadUrl, {
+            method: 'PUT',
+            headers: { 'Content-Type': mimeType },
+            body: req.file.buffer, // Sending the binary data from server
+        });
+
+        if (uploadRes.status !== 200) throw new Error('Google Upload Failed');
+
+        // 5. Make it public
+        await drive.permissions.create({
+            fileId: fileId,
+            requestBody: { role: 'reader', type: 'anyone' },
+        });
+
+        const publicUrl = `https://drive.google.com/uc?export=view&id=${fileId}`;
+
+        console.log('✅ Proxy Upload Success:', fileId);
+        res.json({ publicUrl, fileId });
+
+    } catch (err) {
+        console.error('🔴 PROXY ERROR:', err.message);
+        res.status(500).json({ error: err.message });
+    }
+};
+const finalizeUpload = async (req, res) => {
+    try {
+        const { fileId } = req.body;
+
+        await drive.permissions.create({
+            fileId,
+            requestBody: {
+                role: 'reader',
+                type: 'anyone',
+            },
+        });
+
+        res.json({
+            publicUrl: `https://drive.google.com/uc?export=view&id=${fileId}`,
+        });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ message: 'Failed to finalize upload' });
+    }
+};
+
+
 module.exports = {
     handleAddProduct,
     getAllProducts,
@@ -200,4 +422,10 @@ module.exports = {
     restoreProduct,
     updateProduct,
     upload,
+    handleBulkAddProducts,
+    uploadImage,
+    uploadMultipleImages,
+    createUploadSession,
+    finalizeUpload,
+    proxyUpload,
 };
